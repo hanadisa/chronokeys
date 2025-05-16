@@ -1,0 +1,16 @@
+trigger:
+- dev 
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: AzureWebAppContainer@1
+  displayName: 'Build and Push Docker image to ACR'
+  inputs:
+    azureSubscription: 'AzureRM-Chronokeys' # Azure RM service connection name
+    registry: '${{ secrets.ACR_SERVER }}' # ACR server name for GitHub secret
+    repository: 'chronokeys-app' # desired image name in ACR
+    dockerfile: '**/Dockerfile' # Path to Dockerfile
+    containerName: 'chronokeys-app:$(Build.BuildId)' # image tagged with the build ID
+    action: 'Push image'
