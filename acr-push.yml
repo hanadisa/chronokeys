@@ -1,0 +1,28 @@
+trigger:
+  branches:
+    include:
+      - prod 
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  ACR_NAME: 'chronokeysacr'
+  DOCKER_IMAGE_NAME: 'chronokeys-app'
+  DOCKER_IMAGE_TAG: '$(Build.BuildId)'
+
+steps:
+- checkout: self
+  clean: true
+  persistCredentials: true
+- script: |
+    ls -la
+  displayName: 'List files in workspace'
+- task: Docker@2
+  displayName: 'Build and Push Docker image to ACR'
+  inputs:
+    containerRegistry: 'ACR-Connection'
+    repository: '$(DOCKER_IMAGE_NAME)'
+    command: 'buildAndPush'
+    Dockerfile: 'Dockerfile'
+    tags: |
+      $(DOCKER_IMAGE_TAG)
