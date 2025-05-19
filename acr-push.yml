@@ -12,12 +12,15 @@ variables:
   DOCKER_IMAGE_TAG: '$(Build.BuildId)'
 
 steps:
+- script: |
+    ls -la
+  displayName: 'List files in workspace'  # Add this step temporarily
 - task: Docker@2
   displayName: 'Build and Push Docker image to ACR'
   inputs:
     containerRegistry: 'ACR-Connection'
     repository: '$(DOCKER_IMAGE_NAME)'
     command: 'buildAndPush'
-    Dockerfile: 'Dockerfile' # Corrected path
+    Dockerfile: 'Dockerfile'
     tags: |
       $(DOCKER_IMAGE_TAG)
