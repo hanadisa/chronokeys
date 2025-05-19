@@ -1,0 +1,23 @@
+trigger:
+  branches:
+    include:
+      - prod 
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  ACR_NAME: 'your_acr_name' # Replace with your ACR name
+  DOCKER_IMAGE_NAME: 'chronokeys-app'
+  DOCKER_IMAGE_TAG: '$(Build.BuildId)'
+
+steps:
+- task: Docker@2
+  displayName: 'Build and Push Docker image to ACR'
+  inputs:
+    containerRegistry: 'ACR-Connection'  # Docker Registry service connection
+    repository: '$(DOCKER_IMAGE_NAME)'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
+    tags: |
+      $(DOCKER_IMAGE_TAG)
