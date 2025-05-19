@@ -15,9 +15,9 @@ steps:
 - task: Docker@2
   displayName: 'Build and Push Docker image to ACR'
   inputs:
-    containerRegistry: 'ACR-Connection'  # Docker Registry service connection
+    containerRegistry: 'ACR-Connection'
     repository: '$(DOCKER_IMAGE_NAME)'
     command: 'buildAndPush'
-    Dockerfile: '**/Dockerfile'
+    Dockerfile: 'Dockerfile' # Corrected path
     tags: |
       $(DOCKER_IMAGE_TAG)
