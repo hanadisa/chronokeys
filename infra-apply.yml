@@ -1,0 +1,43 @@
+trigger:
+  branches:
+    include:
+      - prod
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureSubscription: 'AzureRM-Chronokeys' 
+  resourceGroupName: 'chronokeys-rg' 
+  location: 'uksouth' 
+  storage_account_name: 'chronokeystfstate' 
+  container_name: 'tfstate' 
+  key: 'prod.terraform.tfstate' 
+  tfstateResourceGroup: 'chronokeys-tfstate-rg' 
+
+steps:
+- checkout: self
+
+- task: AzureCLI@2
+  displayName: 'Terraform Init'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    workingDirectory: terraform 
+    inlineScript: |
+      terraform init \
+        -backend-config="resource_group_name=$(tfstateResourceGroup)" \ 
+        -backend-config="storage_account_name=$(storage_account_name)" \
+        -backend-config="container_name=$(container_name)" \
+        -backend-config="key=$(key)"
+
+- task: AzureCLI@2
+  displayName: 'Terraform Apply'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    workingDirectory: terraform 
+    inlineScript: |
+      terraform apply -auto-approve
