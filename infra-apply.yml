@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-      - prod
+      - feat/infra-pipelines
 
 pool:
   vmImage: ubuntu-latest
