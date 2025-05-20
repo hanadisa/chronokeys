@@ -1,43 +1,51 @@
+variables:
+  ARM_CLIENT_ID: $(TF-ClientId)
+  ARM_CLIENT_SECRET: $(Pipeline-ARM-ClientSecret)
+  ARM_SUBSCRIPTION_ID: $(Pipeline-ARM-SubscriptionId)
+  ARM_TENANT_ID: $(Pipeline-ARM-TenantId)
+
+  resourceGroupName: $(resourceGroupName)
+  storageAccountName: $(storage_account_name)
+  containerName: $(container_name)
+  key: $(key)
+
 trigger:
-  branches:
-    include:
-      - prod
+- prod
 
 pool:
-  vmImage: ubuntu-latest
-
-variables:
-  azureSubscription: 'AzureRM-Chronokeys' 
-  resourceGroupName: 'chronokeys-rg' 
-  location: 'uksouth' 
-  storage_account_name: 'chronokeystfstate' 
-  container_name: 'tfstate' 
-  key: 'prod.terraform.tfstate' 
-  tfstateResourceGroup: 'chronokeys-tfstate-rg' 
+  vmImage: 'ubuntu-latest'
 
 steps:
-- checkout: self
-
 - task: AzureCLI@2
-  displayName: 'Terraform Init'
+  displayName: 'Terraform Init and Plan'
   inputs:
-    azureSubscription: '$(azureSubscription)'
+    azureSubscription: 'AzureRM-Chronokeys-Temp'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
-    workingDirectory: terraform 
     inlineScript: |
-      terraform init \
-        -backend-config="resource_group_name=$(tfstateResourceGroup)" \ 
-        -backend-config="storage_account_name=$(storage_account_name)" \
-        -backend-config="container_name=$(container_name)" \
-        -backend-config="key=$(key)"
+      export ARM_CLIENT_ID=$(ARM_CLIENT_ID)
+      export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
+      export ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID)
+      export ARM_TENANT_ID=$(ARM_TENANT_ID)
+
+      terraform init -backend-config="resource_group_name=$(resourceGroupName)" \
+                     -backend-config="storage_account_name=$(storageAccountName)" \
+                     -backend-config="container_name=$(containerName)" \
+                     -backend-config="key=$(key)" \
+                     -input=false
+
+      terraform plan -out=tfplan -input=false
 
 - task: AzureCLI@2
   displayName: 'Terraform Apply'
   inputs:
-    azureSubscription: '$(azureSubscription)'
+    azureSubscription: 'AzureRM-Chronokeys-Temp'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
-    workingDirectory: terraform 
     inlineScript: |
-      terraform apply -auto-approve
+      export ARM_CLIENT_ID=$(ARM_CLIENT_ID)
+      export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
+      export ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID)
+      export ARM_TENANT_ID=$(ARM_TENANT_ID)
+
+      terraform apply tfplan -auto-approve
