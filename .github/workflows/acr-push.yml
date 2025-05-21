@@ -42,5 +42,5 @@ jobs:
         file: ./Dockerfile # Dockerfile path
         push: true # Push to ACR
         tags: |
-          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }} # Run number tag
-          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest # Latest tag
+          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
+          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
