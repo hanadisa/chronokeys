@@ -1,44 +1,46 @@
-name: Build and Push Docker Image to ACR
+name: Build and Push Docker Image to ACR # Workflow name
 
 on:
   push:
     branches:
-      - 'prod'
+      - 'prod' # Trigger: push to prod branch
+
+permissions:
+  id-token: write # OIDC token permission
+  contents: read # Checkout repo permission
 
 env:
-  ACR_NAME: 'chronokeysacr' 
-  DOCKER_IMAGE_NAME: 'chronokeys-app'
+  ACR_NAME: 'chronokeysacr' # ACR name
+  DOCKER_IMAGE_NAME: 'chronokeys-app' # Docker image name
 
 jobs:
-  build_and_push:
-    runs-on: ubuntu-latest 
+  build_and_push: # Job: build and push
+    runs-on: ubuntu-latest # Runner: Ubuntu
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4 
+    - name: Checkout repository code # Step: get code
+      uses: actions/checkout@v4 # Action: checkout
 
-    - name: Azure Login
-      uses: azure/login@v1
+    - name: Azure Login # Step: Azure auth
+      uses: azure/login@v1 # Action: Azure login
       with:
-        client-id: ${{ secrets.ARM_CLIENT_ID }}
-        client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
-        tenant-id: ${{ secrets.ARM_TENANT_ID }}
-        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }} 
-        enable-AzPSSession: true 
+        creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","tenantId":"${{ secrets.ARM_TENANT_ID }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}"}' # SPN creds
+        auth-type: 'SERVICE_PRINCIPAL' # Auth type: Service Principal
+        enable-AzPSSession: true # Enable AzPS
 
-    - name: Docker Login to Azure Container Registry
-      uses: docker/login-action@v3
+    - name: Docker Login to Azure Container Registry # Step: ACR login
+      uses: docker/login-action@v3 # Action: Docker login
       with:
-        registry: ${{ secrets.ACR_SERVER }}
-        username: ${{ secrets.ARM_CLIENT_ID }}
-        password: ${{ secrets.ARM_CLIENT_SECRET }}
+        registry: ${{ secrets.ACR_SERVER }} # ACR registry URL
+        username: ${{ secrets.ARM_CLIENT_ID }} # SPN client ID
+        password: ${{ secrets.ARM_CLIENT_SECRET }} # SPN client secret
 
-    - name: Build and Push Docker image
-      uses: docker/build-push-action@v5
+    - name: Build and Push Docker image # Step: Build and push
+      uses: docker/build-push-action@v5 # Action: Docker build/push
       with:
-        context: . 
-        file: ./Dockerfile 
-        push: true
+        context: . # Build context: current dir
+        file: ./Dockerfile # Dockerfile path
+        push: true # Push to ACR
         tags: |
-          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
-          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest # Optionally push a 'latest' tag
+          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }} # Tag: run number
+          ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest # Tag: latest
