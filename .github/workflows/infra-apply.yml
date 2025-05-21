@@ -5,48 +5,45 @@ on:
     branches:
       - 'prod' 
     paths:
-      - 'terraform/**' 
+      - 'terraform/**' # Only run if changes are in the terraform directory
 
 permissions:
-  id-token: write # OIDC token permission
-  contents: read # Checkout repo permission
+  id-token: write # Required for Azure Login using OIDC
+  contents: read # Required to checkout the repository code
 
 env:
-  TF_VAR_resource_group_name: ${{ secrets.RESOURCE_GROUP_NAME }} # TF var: Resource Group
-  TF_VAR_storage_account_name: ${{ secrets.STORAGE_ACCOUNT_NAME }} # TF var: Storage Account
-  TF_VAR_container_name: ${{ secrets.CONTAINER_NAME }} # TF var: Container
-  TF_VAR_key: ${{ secrets.TFSTATE_KEY }} # TF var: State Key
+  RESOURCE_GROUP_NAME: ${{ secrets.RESOURCE_GROUP_NAME }}
+  STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
+  TFSTATE_KEY: ${{ secrets.TFSTATE_KEY }}
 
 jobs:
   terraform_apply: # Job: Terraform apply
     runs-on: ubuntu-latest # Runner: Ubuntu
 
     steps:
-    - name: Checkout repository code # Step: get code
-      uses: actions/checkout@v4 # Action: checkout
+    - name: Checkout repository code
+      uses: actions/checkout@v4 
 
-    - name: Azure Login # Step: Azure auth
-      uses: azure/login@v1 # Action: Azure login
+    - name: Azure Login
+      uses: azure/login@v1 
       with:
-        creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","tenantId":"${{ secrets.ARM_TENANT_ID }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}"}' # SPN creds
-        auth-type: 'SERVICE_PRINCIPAL' # Auth type: Service Principal
-        enable-AzPSSession: true # Enable AzPS
+        creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","tenantId":"${{ secrets.ARM_TENANT_ID }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}"}'
+        auth-type: 'SERVICE_PRINCIPAL'
+        enable-AzPSSession: true
 
-    - name: Setup Terraform # Step: Install Terraform
-      uses: hashicorp/setup-terraform@v2 # Action: Setup Terraform
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2 
       with:
         terraform_version: 1.7.0 
 
-    - name: Terraform Init # Step: Terraform Init
+    - name: Terraform Init
       run: |
         terraform init \
-          -backend-config="resource_group_name=${{ secrets.RESOURCE_GROUP_NAME }}" \
-          -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}" \
-          -backend-config="container_name=${{ secrets.CONTAINER_NAME }}" \
-          -backend-config="key=${{ secrets.TFSTATE_KEY }}"
+          -backend-config="resource_group_name=${{ env.RESOURCE_GROUP_NAME }}" \
+          -backend-config="storage_account_name=${{ env.STORAGE_ACCOUNT_NAME }}" \
+          -backend-config="container_name=${{ env.CONTAINER_NAME }}" \
+          -backend-config="key=${{ env.TFSTATE_KEY }}"
 
-    - name: Terraform Plan # Step: Terraform Plan
-      run: terraform plan -out=tfplan
-
-    - name: Terraform Apply # Step: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+    - name: Terraform Apply
+      run: terraform apply -auto-approve # Apply the infrastructure changes automatically
