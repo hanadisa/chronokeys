@@ -461,7 +461,7 @@ var clocking;
 var mistakeCount = 0;
 var totalCharsInf = 0;
 
-// Taking care of the border color based on whether the text written by user match partially or fully or there is any error.
+// Taking care of the border color based on whether the text written by user match partially, fully or there is any error.
 async function checkUserInputInfinity() {
   totalCharsInf += 1;
   var para = samples[random];
