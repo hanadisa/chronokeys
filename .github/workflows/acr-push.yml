@@ -1,62 +1,65 @@
-name: Build and Push Docker Image to ACR 
+name: Build and Push Docker Image to ACR
 
 on:
   push:
     branches:
-      - 'prod' 
+      - 'prod'
     paths:
-      - 'app/**' 
-      - 'Dockerfile' 
+      - 'app/**'
+      - 'Dockerfile'
 
 permissions:
-  id-token: write # OIDC token permission
-  contents: read # Checkout repo permission
+  id-token: write
+  contents: read
 
 env:
-  ACR_NAME: 'chronokeysacr' # ACR name 
-  DOCKER_IMAGE_NAME: 'chronokeys-app' # Docker image name
+  ACR_NAME: 'chronokeysacr'
+  DOCKER_IMAGE_NAME: 'chronokeys-app'
 
 jobs:
-  build_and_push: # Job: build and push
-    runs-on: ubuntu-latest # Runner: Ubuntu
+  build_and_push:
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository code # Step: get code
-      uses: actions/checkout@v4 # Action: checkout
+    - name: Get code
+      uses: actions/checkout@v4
 
-    - name: Azure Login # Step: Azure auth
-      uses: azure/login@v1 # Action: Azure login
+    - name: Log in to Azure
+      uses: azure/login@v1
       with:
-        creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","tenantId":"${{ secrets.ARM_TENANT_ID }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}"}' # SPN creds
-        auth-type: 'SERVICE_PRINCIPAL' # Auth type: Service Principal
-        enable-AzPSSession: true # Enable AzPS
+        creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","tenantId":"${{ secrets.ARM_TENANT_ID }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}"}'
+        auth-type: 'SERVICE_PRINCIPAL'
+        enable-AzPSSession: true
 
-    - name: Docker Login to Azure Container Registry # Step: ACR login
-      uses: docker/login-action@v3 # Action: Docker login
+    - name: Log in to Azure Container Registry
+      uses: docker/login-action@v3
       with:
-        registry: ${{ secrets.ACR_SERVER }} # ACR registry URL
-        username: ${{ secrets.ARM_CLIENT_ID }} # SPN client ID
-        password: ${{ secrets.ARM_CLIENT_SECRET }} # SPN client secret
+        registry: ${{ secrets.ACR_SERVER }}
+        username: ${{ secrets.ARM_CLIENT_ID }}
+        password: ${{ secrets.ARM_CLIENT_SECRET }}
 
-    - name: Build Docker image # Step: Build image (separated from push to allow scanning)
-      uses: docker/build-push-action@v5 # Action: Docker build/push
+    - name: Build Docker image for scanning
+      uses: docker/build-push-action@v5
       with:
-        context: . # Build context: current dir
-        file: ./Dockerfile # Dockerfile path
+        context: .
+        file: ./Dockerfile
+        tags: ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+        load: true # Loads image onto runner for Trivy
+
+    - name: Scan Docker image for vulnerabilities with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+        format: 'table'
+        exit-code: '1' # Fails the pipeline if vulnerabilities are found
+        severity: 'CRITICAL,HIGH' # Only checks for Critical and High severity
+
+    - name: Push Docker image to ACR
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
         tags: |
           ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
           ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
-        load: true # Load the image into the Docker daemon for scanning
-
-    - name: Run Trivy vulnerability scan # Trivy scan
-      uses: aquasecurity/trivy-action@master # Action: Trivy
-      with:
-        image-ref: ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest # Image to scan
-        format: 'table' # Output format
-        exit-code: '1' # Fail the pipeline if vulnerabilities are found
-        severity: 'CRITICAL,HIGH' # Only report Critical and High severity vulnerabilities
-
-    - name: Push Docker image to ACR # Step: Push image 
-      run: |
-        docker push ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
-        docker push ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
