@@ -3,14 +3,17 @@ name: Build and Push Docker Image to ACR
 on:
   push:
     branches:
-      - 'prod' # Trigger: push to prod branch
+      - 'prod' 
+    paths:
+      - 'app/**' 
+      - 'Dockerfile' 
 
 permissions:
   id-token: write # OIDC token permission
   contents: read # Checkout repo permission
 
 env:
-  ACR_NAME: 'chronokeysacr' # ACR name
+  ACR_NAME: 'chronokeysacr' # ACR name 
   DOCKER_IMAGE_NAME: 'chronokeys-app' # Docker image name
 
 jobs:
@@ -35,12 +38,25 @@ jobs:
         username: ${{ secrets.ARM_CLIENT_ID }} # SPN client ID
         password: ${{ secrets.ARM_CLIENT_SECRET }} # SPN client secret
 
-    - name: Build and Push Docker image # Step: Build and push
+    - name: Build Docker image # Step: Build image (separated from push to allow scanning)
       uses: docker/build-push-action@v5 # Action: Docker build/push
       with:
         context: . # Build context: current dir
         file: ./Dockerfile # Dockerfile path
-        push: true # Push to ACR
         tags: |
           ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
           ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+        load: true # Load the image into the Docker daemon for scanning
+
+    - name: Run Trivy vulnerability scan # Trivy scan
+      uses: aquasecurity/trivy-action@master # Action: Trivy
+      with:
+        image-ref: ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest # Image to scan
+        format: 'table' # Output format
+        exit-code: '1' # Fail the pipeline if vulnerabilities are found
+        severity: 'CRITICAL,HIGH' # Only report Critical and High severity vulnerabilities
+
+    - name: Push Docker image to ACR # Step: Push image 
+      run: |
+        docker push ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.run_number }}
+        docker push ${{ secrets.ACR_SERVER }}/${{ env.DOCKER_IMAGE_NAME }}:latest
