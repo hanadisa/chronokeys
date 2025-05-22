@@ -2,6 +2,9 @@
 
 This project automates the deployment of the **Chronokeys application**, a typing speed game that tests the user's typing accuracy and words per minute. The deployment is orchestrated on **Azure** using **Terraform** for infrastructure provisioning and **GitHub Actions** for a robust **CI/CD pipeline**. It provisions **Azure Container Apps** to host the containerised application, integrates with **Azure Container Registry (ACR)** for **Docker** image management, and leverages **Azure Front Door** for efficient and secure global traffic routing, including **HTTPS**. This setup ensures scalability, security, and efficiency for the application
 
+## End-to-End Architecture Diagram
+<img src="https://raw.githubusercontent.com/hanadisa/chronokeys-aca/2c5f578ff5dfecfdbf0812a1083e90d36adeb924/docs/Images/architecture-diagram.png" width="1000">
+
 ---
 
 ## 🎥Live Demonstration
