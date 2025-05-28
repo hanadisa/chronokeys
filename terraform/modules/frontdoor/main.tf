@@ -1,19 +1,19 @@
 # Azure Front Door Profile
 resource "azurerm_cdn_frontdoor_profile" "fd_profile" {
-  name                = "chronokeys-fd-profile"
-  resource_group_name = "chronokeys-rg"
+  name                = var.profile_name
+  resource_group_name = var.resource_group_name
   sku_name            = "Standard_AzureFrontDoor"
 }
 
 # Azure Front Door Endpoint
 resource "azurerm_cdn_frontdoor_endpoint" "fd_endpoint" {
-  name                     = "chronokeys-fd-endpoint"
+  name                 = var.endpoint_name
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.fd_profile.id
 }
 
 # Origin Group
 resource "azurerm_cdn_frontdoor_origin_group" "fd_origin_group" {
-  name                     = "chronokeys-origin-group"
+  name                 = var.origin_group_name
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.fd_profile.id
 
   load_balancing {
@@ -32,21 +32,21 @@ resource "azurerm_cdn_frontdoor_origin_group" "fd_origin_group" {
 
 # Origin pointing to Container App
 resource "azurerm_cdn_frontdoor_origin" "fd_origin" {
-  name                           = "chronokeys-app-origin"
-  cdn_frontdoor_origin_group_id  = azurerm_cdn_frontdoor_origin_group.fd_origin_group.id
-  host_name                      = var.origin_hostname
-  origin_host_header             = var.origin_hostname
-  http_port                      = 80
-  https_port                     = 443
-  enabled                        = true
-  priority                       = 1
-  weight                         = 1000
+  name                          = var.origin_name
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.fd_origin_group.id
+  host_name                     = var.origin_hostname
+  origin_host_header            = var.origin_hostname
+  http_port                     = 80
+  https_port                    = 443
+  enabled                       = true
+  priority                      = 1
+  weight                        = 1000
   certificate_name_check_enabled = true
 }
 
 # Route to container app
 resource "azurerm_cdn_frontdoor_route" "fd_route" {
-  name                          = "chronokeys-route"
+  name                          = var.route_name
   cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.fd_endpoint.id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.fd_origin_group.id
   cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.fd_origin.id]

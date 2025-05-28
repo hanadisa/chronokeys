@@ -1,29 +1,29 @@
 # Container App Env (public)
 resource "azurerm_container_app_environment" "chronokeys_env" {
-  name                           = "chronokeys-env"
-  location                       = "uksouth"
-  resource_group_name            = "chronokeys-rg"
-  infrastructure_subnet_id       = var.subnet_id
-  internal_load_balancer_enabled = false 
+  name                         = var.environment_name
+  location                     = var.location
+  resource_group_name          = var.resource_group_name
+  infrastructure_subnet_id     = var.subnet_id
+  internal_load_balancer_enabled = false
 }
 
 # Container App
 resource "azurerm_container_app" "chronokeys_app" {
-  name                         = "chronokeys-app"
+  name                         = var.app_name
   container_app_environment_id = azurerm_container_app_environment.chronokeys_env.id
-  resource_group_name          = "chronokeys-rg"
+  resource_group_name          = var.resource_group_name
   revision_mode                = "Single"
 
   identity {
-    type         = "UserAssigned"
+    type        = "UserAssigned"
     identity_ids = [var.identity_id]
   }
 
   template {
     container {
-      name   = var.container_name
-      image  = "${var.acr_login_server}/${var.container_name}:latest"
-      cpu    = 0.25
+      name  = var.container_name
+      image = "${var.acr_login_server}/${var.container_name}:${var.container_image_tag}"
+      cpu   = 0.25
       memory = "0.5Gi"
     }
   }
@@ -39,7 +39,7 @@ resource "azurerm_container_app" "chronokeys_app" {
     transport        = "auto"
 
     traffic_weight {
-      percentage      = 100
+      percentage    = 100
       latest_revision = true
     }
   }
